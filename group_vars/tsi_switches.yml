@@ -1,13 +1,15 @@
 ---
-# kickstart not required for 7.0(3)I2(1) and later
-desired_nxos_file: "nxos.test.bin"
-desired_config: "baseline_config.txt"
+filepath: "files/tsi_switches"
+desired_config: "n3k_baseline.txt"
+# desired_nxos_file: "nxos.7.0.3.I7.8.compact.bin"
+# desired_nxos_file: "nxos.7.0.3.I7.9.compact.bin"
 
 # Connectivity parameters
 ansible_python_interpreter: "/usr/bin/env python"
 ansible_network_os: "cisco.nxos.nxos"
 ansible_user: "admin"
-ansible_password: "Cisco123"
+# ansible_password: "Cisco123"  # devnet reservable
+ansible_password: "1qaz@WSX"  # local hardware
 ansible_connection: "network_cli"
 ansible_port: 22
 ...

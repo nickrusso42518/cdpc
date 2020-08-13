@@ -1,0 +1,17 @@
+---
+- name: "Manage TSI switch and baseline configs and NX-OS image"
+  hosts: "tsi_switches"
+  tasks:
+    - name: "Ensure SCP server is enabled"
+      cisco.nxos.nxos_feature:
+        feature: "scp-server"
+        state: "enabled"
+
+    - name: "Begin baseline config replacement process"
+      include_tasks: "tasks/update_config.yml"
+      when: "desired_config is defined and desired_config"
+
+    - name: "Begin NX-OS update process"
+      include_tasks: "tasks/update_nxos.yml"
+      when: "desired_nxos_file is defined and desired_nxos_file"
+...
