@@ -29,5 +29,5 @@
         that: "status == 'Success'"
         msg: "Expected config replacement 'Success', saw {{ status }}"
       delegate_to: "localhost"
-  when: "copy_result.changed"
+  when: "copy_result.changed or force_config"
 ...

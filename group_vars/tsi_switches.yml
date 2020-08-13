@@ -1,8 +1,12 @@
 ---
 filepath: "files/tsi_switches"
 desired_config: "n3k_baseline.txt"
-# desired_nxos_file: "nxos.7.0.3.I7.8.compact.bin"
+desired_nxos_file: "nxos.7.0.3.I7.8.compact.bin"
 # desired_nxos_file: "nxos.7.0.3.I7.9.compact.bin"
+
+# Override idempotent behavior for testing
+force_config: false
+force_nxos: false
 
 # Connectivity parameters
 ansible_python_interpreter: "/usr/bin/env python"
