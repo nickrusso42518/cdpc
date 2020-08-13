@@ -15,6 +15,7 @@
         backup: true
         replace: "config"
         replace_src: "bootflash:{{ desired_config }}"
+        save_when: "modified"
 
     - name: "Collect config replacement status"
       cisco.nxos.nxos_command:
