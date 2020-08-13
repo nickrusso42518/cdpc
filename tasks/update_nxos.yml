@@ -5,20 +5,25 @@
     remote_file: "{{ desired_nxos_file }}"
   register: "copy_result"
 
+- name: "Perform NX-OS installation"
+  cisco.nxos.nxos_install_os:
+    system_image_file: "{{ desired_nxos_file }}"
+  when: "copy_result.changed or force_nxos"
+
+- name: "Reset the connection (always runs)"
+  meta: "reset_connection"
+
 - name: "Update NX-OS because image file changed"
   block:
-    - name: "Perform NX-OS installation"
-      cisco.nxos.nxos_install_os:
-        system_image_file: "{{ desired_nxos_file }}"
-
-    - name: "Reset the connection (always runs)"
-      meta: "reset_connection"
-
     - name: "Wait for SSH connection to reform"
       wait_for_connection:
         delay: 120
         sleep: 5
         timeout: 600
+
+    - name: "Reconnection successful; waiting 60 seconds for boot completion"
+      pause:
+        seconds: 60
 
     - name: "Collect current NX-OS version"
       cisco.nxos.nxos_command:
