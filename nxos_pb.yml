@@ -1,0 +1,55 @@
+---
+- name: "Manage TSI switches"
+  hosts: "tsi_switches"
+  tasks:
+    - name: "Update NX-OS with file: {{ desired_nxos_file }}"
+      block:
+        - name: "Copy file and perform installation"
+          cisco.nxos.nxos_install_os:
+            system_image_file: "{{ desired_nxos_file }}"
+
+        - name: "Wait for device to come online"
+          wait_for:
+            host: "{{ inventory_hostname }}"
+            port: "{{ ansible_port }}"
+            state: "started"
+            timeout: 500
+            delay: 60
+          delegate_to: "localhost"
+
+        - name: "Collect current NX-OS version"
+          nxos_command:
+            commands: "show version | json"
+          register: "current_ver"
+
+        - name: "Ensure software update succeeded"
+          assert:
+            that: "desired_nxos_file in current_ver.stdout[0].nxos_file_name"
+          delegate_to: "localhost"
+
+      when: "desired_nxos_file is defined and desired_nxos_file"
+      # block end
+
+    - name: "Replace current config with desired config: {{ desired_config}}"
+      block:
+        - name: "Copy desired config to device"
+          cisco.nxos.nxos_file_copy:
+            local_file: "{{ desired_config }}"
+
+        - name: "Replace the existing config with the new one"
+          cisco.nxos.nxos_config:
+            replace: "config"
+            replace_src: "bootflash:{{ desired_config }}"
+
+        - name: "Replace the existing config with the new one"
+          cisco.nxos.nxos_command:
+            commands: "show config-replace status | json"
+          register: "config_status"
+
+        - name: "Ensure config replacement succeeded"
+          assert:
+            that: "config_status.stdout[0].operation_status == 'Success'"
+          delegate_to: "localhost"
+
+      when: "desired_config is defined and desired_config"
+      # block end
