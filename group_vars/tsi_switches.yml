@@ -1,15 +1,13 @@
 ---
-# Device data (kickstart?)
-# desired_nxos_file: "files/nxos.9.3.3.bin"
-desired_config: "files/baseline_config.txt"
+# kickstart not required for 7.0(3)I2(1) and later
+desired_nxos_file: "nxos.test.bin"
+desired_config: "baseline_config.txt"
 
 # Connectivity parameters
 ansible_python_interpreter: "/usr/bin/env python"
 ansible_network_os: "cisco.nxos.nxos"
 ansible_user: "admin"
 ansible_password: "Cisco123"
-ansible_persistent_command_timeout: 600
-ansible_persistent_connect_timeout: 600
 ansible_connection: "network_cli"
 ansible_port: 22
 ...
