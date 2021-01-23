@@ -1,0 +1,13 @@
+---
+- name: "Collect information from TSI switches"
+  hosts: "tsi_switches"
+  tasks:
+    - name: "Collect current NX-OS version"
+      nxos_command:
+        commands: "show version | json"
+      register: "ver_output"
+
+    - name: "Print current NX-OS version"
+      debug:
+        var: "ver_output.stdout[0].kick_file_name"
+...
