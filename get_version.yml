@@ -2,7 +2,6 @@
 - name: "Collect information from TSI switches"
   hosts: "tsi_switches"
   tasks:
-    - debug: var=hostvars
     - name: "Collect current NX-OS version"
       nxos_command:
         commands: "show version | json"
