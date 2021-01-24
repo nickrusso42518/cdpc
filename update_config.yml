@@ -2,7 +2,6 @@
 - name: "Manage TSI switch baseline config"
   hosts: "tsi_switches"
   tasks:
-
     - name: "Perform common file download setup tasks"
       include_tasks: "task_file_copy.yml"
       vars:
@@ -12,7 +11,6 @@
       block:
         - name: "Replace the existing config with the new one"
           nxos_config:
-            # backup: true  # TODO fancy backup to repo?
             replace: "config"
             replace_src: "bootflash:{{ desired_config }}"
             save_when: "modified"

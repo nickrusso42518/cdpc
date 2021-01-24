@@ -7,12 +7,10 @@
       vars:
         desired_file: "{{ desired_nxos_image }}"
 
-    - fail:
-
-    - name: "Perform NX-OS installation"
+    - name: "Perform NX-OS installation using {{ desired_nxos_image }}"
       nxos_install_os:
         system_image_file: "{{ desired_nxos_image }}"
-      when: "copy_result.changed or force_nxos"
+      when: "not hashes_match or force_change"
 
     - name: "Reset the connection (always runs)"
       meta: "reset_connection"
@@ -44,5 +42,5 @@
             that: "desired_nxos_image in cur_ver"
             msg: "Expected NX-OS {{ desired_nxos_image }}; saw {{ cur_ver }}"
           delegate_to: "localhost"
-      when: "copy_result.changed or force_nxos"
+      when: "not hashes_match or force_change"
 ...

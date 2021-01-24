@@ -63,6 +63,10 @@
 
 - name: "Perform common actions when hashes do not match or forced"
   block:
+    # Example NX-OS "copy" command:
+    # copy http://jdoe:password321@192.168.99.86:8081/repository/
+    #   network-data/files/tsi_switches/n3k_baseline.txt
+    #   bootflash:n3k_baseline.txt vrf management
     - name: "Download {{ desired_file }} when hashes do not match"
       nxos_command:
         commands:
@@ -73,12 +77,17 @@
             repo_name }}/{{ fqfn }}
             bootflash:{{ desired_file }}
             vrf {{ repo_vrf }}
+          - "show file bootflash:{{ desired_file }} sha256sum"
       register: "copy_result"
 
     - name: "Ensure file copy succeeded"
+      vars:
+        nxos_hash2: "{{ copy_result.stdout[2] | trim | lower }}"
       assert:
-        that: "'Copy complete.' in copy_result.stdout[1]"
-        msg: "Unexpected copy_result: {{ copy_result }}"
+        that:
+          - "'Copy complete.' in copy_result.stdout[1]"
+          - "nxos_hash2 == repo_hash"
+        msg: "Error: {{ copy_result }} / {{ nxos_hash2 }} / {{ repo_hash }}"
       delegate_to: "localhost"
   when: "not hashes_match or force_change"
 ...
