@@ -12,6 +12,11 @@
         local_file: "{{ filepath }}/{{ desired_nxos_file }}"
         remote_file: "{{ desired_nxos_file }}"
       register: "copy_result"
+      when: false
+
+    - set_fact:
+        copy_result:
+          changed: true
 
     - name: "Perform NX-OS installation"
       nxos_install_os:
