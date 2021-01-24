@@ -1,0 +1,52 @@
+---
+- name: "Manage TSI switch and baseline configs and NX-OS image"
+  hosts: "tsi_switches"
+  tasks:
+    - name: "Ensure SCP server is enabled"
+      nxos_feature:
+        feature: "scp-server"
+        state: "enabled"
+
+    - name: "Copy desired NX-OS image to device: {{ desired_nxos_file }}"
+      nxos_file_copy:
+        local_file: "{{ filepath }}/{{ desired_nxos_file }}"
+        remote_file: "{{ desired_nxos_file }}"
+      register: "copy_result"
+
+    - name: "Perform NX-OS installation"
+      nxos_install_os:
+        system_image_file: "{{ desired_nxos_file }}"
+      when: "copy_result.changed or force_nxos"
+
+    - name: "Reset the connection (always runs)"
+      meta: "reset_connection"
+
+    - name: "Update NX-OS because image file changed"
+      block:
+        - name: "Wait for SSH connection to reform"
+          wait_for_connection:
+            delay: 120
+            sleep: 5
+            timeout: 600
+
+        - name: "Reconnection successful; wait 60 seconds for boot completion"
+          pause:
+            seconds: 60
+
+        - name: "Collect current NX-OS version"
+          nxos_command:
+            commands: "show version | json"
+          register: "ver_output"
+
+          # last system version - "rr_sys_ver": "7.0(3)I7(8)"
+          # current system version - "kickstart_ver_str": "7.0(3)I7(9)"
+          # "kick_file_name": "bootflash:///nxos.7.0.3.I7.9.compact.bin"
+        - name: "Ensure software update succeeded"
+          vars:
+            cur_ver: "{{ ver_output.stdout[0].kick_file_name }}"
+          assert:
+            that: "desired_nxos_file in cur_ver"
+            msg: "Expected NX-OS {{ desired_nxos_file }}; saw {{ cur_ver }}"
+          delegate_to: "localhost"
+      when: "copy_result.changed or force_nxos"
+...
