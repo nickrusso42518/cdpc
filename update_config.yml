@@ -19,7 +19,7 @@
         # /root/.ansible/collections/ansible_collections/cisco/nxos/plugins/module_utils/network/nxos/nxos.py
         # /root/.ansible/collections/ansible_collections/cisco/nxos/plugins/cliconf/nxos.py
         - name: "Replace the existing config with the new one"
-          cisco.nxos.nxos_config:
+          nxos_config:
             backup: true
             replace: "config"
             replace_src: "bootflash:{{ desired_config }}"
