@@ -2,25 +2,17 @@
 - name: "Manage TSI switch baseline config"
   hosts: "tsi_switches"
   tasks:
-    - name: "Ensure SCP server is enabled"
-      nxos_feature:
-        feature: "scp-server"
-        state: "enabled"
 
-    - name: "Copy desired config to device: {{ desired_config }}"
-      nxos_file_copy:
-        local_file: "{{ filepath }}/{{ desired_config }}"
-        remote_file: "{{ desired_config }}"
-      register: "copy_result"
+    - name: "Perform common file download setup tasks"
+      include_tasks: "task_file_copy.yml"
+      vars:
+        desired_file: "{{ desired_config }}"
 
-    - name: "Replace configuration because baseline changed"
+    - name: "Replace config when hashes do not match or force_change is true"
       block:
-        # HAND EDIT SOURCE CODE; 3K supports config replace
-        # /root/.ansible/collections/ansible_collections/cisco/nxos/plugins/module_utils/network/nxos/nxos.py
-        # /root/.ansible/collections/ansible_collections/cisco/nxos/plugins/cliconf/nxos.py
         - name: "Replace the existing config with the new one"
           nxos_config:
-            backup: true
+            # backup: true  # TODO fancy backup to repo?
             replace: "config"
             replace_src: "bootflash:{{ desired_config }}"
             save_when: "modified"
@@ -37,5 +29,5 @@
             that: "status == 'Success'"
             msg: "Expected config replacement 'Success', saw {{ status }}"
           delegate_to: "localhost"
-      when: "copy_result.changed or force_config"
+      when: "not hashes_match or force_change"
 ...

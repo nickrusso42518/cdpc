@@ -1,4 +1,4 @@
 ansible==2.9.15
 yamllint
 paramiko
-scp
+pexpect

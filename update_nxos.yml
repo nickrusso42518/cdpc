@@ -2,25 +2,16 @@
 - name: "Manage TSI switch and baseline configs and NX-OS image"
   hosts: "tsi_switches"
   tasks:
-    - name: "Ensure SCP server is enabled"
-      nxos_feature:
-        feature: "scp-server"
-        state: "enabled"
+    - name: "Perform common file download setup tasks"
+      include_tasks: "task_file_copy.yml"
+      vars:
+        desired_file: "{{ desired_nxos_image }}"
 
-    - name: "Copy desired NX-OS image to device: {{ desired_nxos_file }}"
-      nxos_file_copy:
-        local_file: "{{ filepath }}/{{ desired_nxos_file }}"
-        remote_file: "{{ desired_nxos_file }}"
-      register: "copy_result"
-      when: false
-
-    - set_fact:
-        copy_result:
-          changed: true
+    - fail:
 
     - name: "Perform NX-OS installation"
       nxos_install_os:
-        system_image_file: "{{ desired_nxos_file }}"
+        system_image_file: "{{ desired_nxos_image }}"
       when: "copy_result.changed or force_nxos"
 
     - name: "Reset the connection (always runs)"
@@ -50,8 +41,8 @@
           vars:
             cur_ver: "{{ ver_output.stdout[0].kick_file_name }}"
           assert:
-            that: "desired_nxos_file in cur_ver"
-            msg: "Expected NX-OS {{ desired_nxos_file }}; saw {{ cur_ver }}"
+            that: "desired_nxos_image in cur_ver"
+            msg: "Expected NX-OS {{ desired_nxos_image }}; saw {{ cur_ver }}"
           delegate_to: "localhost"
       when: "copy_result.changed or force_nxos"
 ...

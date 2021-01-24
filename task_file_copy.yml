@@ -1,0 +1,84 @@
+---
+- name: "Perform common file download setup tasks"
+  block:
+    - name: "Define desired file FQFN and repo base URL"
+      set_fact:
+        fqfn: "{{ repo_filepath }}/{{ desired_file }}"
+        base_url: "http://{{ repo_host }}:{{ repo_port }}/service/rest/v1"
+
+    - name: "Display desired file FQFN and repo base URL"
+      debug:
+        msg:
+          - "fqfn: {{ fqfn }}"
+          - "base_url: {{ base_url }}"
+
+    - name: "Ensure repo is responding to API requests"
+      uri:
+        url: "{{ base_url }}/status"
+
+    - name: "Search for {{ fqfn }} in repo {{ repo_name }}"
+      vars:
+        params: "repository={{ repo_name }}&name={{ fqfn | urlencode }}"
+      uri:
+        url: "{{ base_url }}/search/assets?{{ params }}"
+        user: "{{ repo_user }}"
+        password: "{{ repo_password }}"
+        force_basic_auth: true
+        headers:
+          Accept: "application/json"
+      register: "repo_search"
+
+    - name: "Ensure that the correct file was found"
+      assert:
+        that:
+          - "repo_search.json['items'] | length == 1"
+          - "repo_search.json['items'][0].path == fqfn"
+        msg: "{{ fqfn }} not found: {{ repo_search.json }}"
+  delegate_to: "localhost"
+
+- name: "Compute SHA-256 for local NX-OS file if present"
+  nxos_command:
+    commands: "show file bootflash:{{ desired_file }} sha256sum"
+  register: "nxos_hash_raw"
+
+- name: "Finish common file download setup tasks"
+  block:
+    - name: "Extract SHA-256 hashes"
+      set_fact:
+        nxos_hash: "{{ nxos_hash_raw.stdout[0] | trim | lower }}"
+        repo_hash: "{{ repo_search.json['items'][0].checksum.sha256 | lower }}"
+
+    - name: "Display SHA-256 hashes"
+      debug:
+        msg:
+          - "nxos_hash: {{ nxos_hash }}"
+          - "repo_hash: {{ repo_hash }}"
+
+    - name: "Do the SHA-256 hashes match? {{ hashes_match_temp }}"
+      vars:
+        hashes_match_temp: "{{ nxos_hash == repo_hash }}"
+      set_fact:
+        hashes_match: "{{ hashes_match_temp }}"
+  delegate_to: "localhost"
+
+- name: "Perform common actions when hashes do not match or forced"
+  block:
+    - name: "Download {{ desired_file }} when hashes do not match"
+      nxos_command:
+        commands:
+          - "delete bootflash:{{ desired_file }} no-prompt"
+          - >-
+            copy http://{{ repo_user }}:{{ repo_password }}@{{
+            repo_host }}:{{ repo_port }}/repository/{{
+            repo_name }}/{{ fqfn }}
+            bootflash:{{ desired_file }}
+            vrf {{ repo_vrf }}
+      register: "copy_result"
+
+    - name: "Ensure file copy succeeded"
+      assert:
+        that: "'Copy complete.' in copy_result.stdout[1]"
+        msg: "Unexpected copy_result: {{ copy_result }}"
+      delegate_to: "localhost"
+  when: "not hashes_match or force_change"
+...
