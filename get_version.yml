@@ -1,6 +1,7 @@
 ---
 - name: "Collect information from TSI switches"
   hosts: "tsi_switches"
+  gather_facts: false
   tasks:
     - name: "Collect current NX-OS version"
       nxos_command:

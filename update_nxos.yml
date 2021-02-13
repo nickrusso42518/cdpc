@@ -1,6 +1,7 @@
 ---
 - name: "Manage TSI switch and baseline configs and NX-OS image"
   hosts: "tsi_switches"
+  gather_facts: false
   tasks:
     - name: "Perform common file download setup tasks"
       include_tasks: "task_file_copy.yml"
