@@ -4,7 +4,7 @@
     - name: "Define desired file FQFN and repo base URL"
       set_fact:
         fqfn: "{{ repo_filepath }}/{{ desired_file }}"
-        base_url: "http://{{ repo_host }}:{{ repo_port }}/service/rest/v1"
+        base_url: "{{ repo_internal_url }}/service/rest/v1"
 
     - name: "Display desired file FQFN and repo base URL"
       debug:
@@ -15,13 +15,16 @@
     - name: "Ensure repo is responding to API requests"
       uri:
         url: "{{ base_url }}/status"
+        user: "{{ repo_username }}"
+        password: "{{ repo_password }}"
+        force_basic_auth: true
 
     - name: "Search for {{ fqfn }} in repo {{ repo_name }}"
       vars:
         params: "repository={{ repo_name }}&name={{ fqfn | urlencode }}"
       uri:
         url: "{{ base_url }}/search/assets?{{ params }}"
-        user: "{{ repo_user }}"
+        user: "{{ repo_username }}"
         password: "{{ repo_password }}"
         force_basic_auth: true
         headers:
@@ -63,29 +66,38 @@
 
 - name: "Perform common actions when hashes do not match or forced"
   block:
-    # Example NX-OS "copy" command:
-    # copy http://jdoe:password321@192.168.99.86:8081/repository/
+    - name: "Temporarily enable bash-shell"
+      nxos_feature:
+        feature: "bash-shell"
+        state: "enabled"
+
+    # Example Bash "curl" command:
+    # run bash curl http://192.168.99.86:8081/repository/
     #   network-data/files/tsi_switches/n3k_baseline.txt
-    #   bootflash:n3k_baseline.txt vrf management
+    #   -u 'jdoe:password321' -k -f -o /bootflash/test.cfg
+    #   && echo COPY_COMPLETE
     - name: "Download {{ desired_file }} when hashes do not match"
       nxos_command:
         commands:
           - "delete bootflash:{{ desired_file }} no-prompt"
           - >-
-            copy http://{{ repo_user }}:{{ repo_password }}@{{
-            repo_host }}:{{ repo_port }}/repository/{{
-            repo_name }}/{{ fqfn }}
-            bootflash:{{ desired_file }}
-            vrf {{ repo_vrf }}
+            run bash curl {{ repo_external_url }}/repository/{{ repo_name
+            }}/{{ fqfn }} -u '{{ repo_username }}:{{ repo_password }}'
+            -k -f -o /bootflash/{{ desired_file }} && echo COPY_COMPLETE
           - "show file bootflash:{{ desired_file }} sha256sum"
       register: "copy_result"
+
+    - name: "Disable bash-shell"
+      nxos_feature:
+        feature: "bash-shell"
+        state: "disabled"
 
     - name: "Ensure file copy succeeded"
       vars:
         nxos_hash2: "{{ copy_result.stdout[2] | trim | lower }}"
       assert:
         that:
-          - "'Copy complete.' in copy_result.stdout[1]"
+          - "'COPY_COMPLETE' in copy_result.stdout[1]"
           - "nxos_hash2 == repo_hash"
         msg: "Error: {{ copy_result }} / {{ nxos_hash2 }} / {{ repo_hash }}"
       delegate_to: "localhost"
